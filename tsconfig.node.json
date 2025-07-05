@@ -20,7 +20,7 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
-    "types": ["node", "express", "cors"],
+    "types": ["node", "express", "cors", "morgan"],
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
@@ -28,5 +28,5 @@
     "typeRoots": ["./node_modules/@types"],
     "resolveJsonModule": true
   },
-  "include": ["vite.config.ts", "server/**/*.ts"]
+  "include": ["vite.config.ts", "server/**/*.ts", "src/types/**/*.d.ts"]
 }

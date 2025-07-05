@@ -41,3 +41,34 @@ declare global {
 }
 
 export {};
+
+// Minimal NodeJS type declaration for the 'razorpay' npm package
+declare module 'razorpay' {
+  interface RazorpayInstanceOptions {
+    key_id: string;
+    key_secret: string;
+  }
+
+  interface RazorpayOrderRequest {
+    amount: number; // paise
+    currency: string;
+    receipt: string;
+    payment_capture?: 0 | 1;
+  }
+
+  interface RazorpayOrderResponse {
+    id: string;
+    amount: number;
+    currency: string;
+    receipt: string;
+    status: string;
+    created_at: number;
+  }
+
+  export default class Razorpay {
+    constructor(options: RazorpayInstanceOptions);
+    orders: {
+      create(options: RazorpayOrderRequest): Promise<RazorpayOrderResponse>;
+    };
+  }
+}

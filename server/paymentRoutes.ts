@@ -68,27 +68,32 @@ router.post('/create-order', async (req: Request, res: Response) => {
  * Expected body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
  */
 router.post('/verify', (req: Request, res: Response) => {
-  if (!RAZORPAY_KEY_SECRET) {
-    return res.status(503).json({ error: 'Payment service not configured' });
+  try {
+    if (!RAZORPAY_KEY_SECRET) {
+      return res.status(503).json({ error: 'Payment service not configured' });
+    }
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body as Record<string, string>;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: 'Missing parameters' });
+    }
+
+    const generatedSignature = crypto
+      .createHmac('sha256', RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (generatedSignature === razorpay_signature) {
+      // Signature verified
+      return res.json({ success: true });
+    }
+
+    return res.status(400).json({ success: false, error: 'Invalid signature' });
+  } catch (error) {
+    console.error('[UPI] Verification error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body as Record<string, string>;
-
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return res.status(400).json({ error: 'Missing parameters' });
-  }
-
-  const generatedSignature = crypto
-    .createHmac('sha256', RAZORPAY_KEY_SECRET)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest('hex');
-
-  if (generatedSignature === razorpay_signature) {
-    // Signature verified
-    return res.json({ success: true });
-  }
-
-  return res.status(400).json({ success: false, error: 'Invalid signature' });
 });
 
 export default router;

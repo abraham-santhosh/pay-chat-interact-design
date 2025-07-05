@@ -74,6 +74,79 @@ This application includes a comprehensive email notification system that sends a
 
 See [EMAIL_NOTIFICATIONS.md](./EMAIL_NOTIFICATIONS.md) for detailed setup instructions.
 
+## 🏦 UPI Payment Integration (Razorpay)
+
+This project ships with a **production-ready Razorpay integration** that allows users to settle expenses via any UPI app.
+
+### 1. Prerequisites
+
+1. A Razorpay account – generate a **Key ID** and **Key Secret** in the *Dashboard → Settings → API Keys* section.
+2. Node.js ≥ 18.x and npm.
+
+### 2. Environment variables
+
+Copy `.env.example` to `.env` and fill in **all** values:
+
+```bash
+cp .env.example .env
+nano .env   # or any editor
+```
+
+Important keys:
+
+* `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` – from Razorpay dashboard.
+* `VITE_API_BASE_URL` – URL where the Express server is reachable (defaults to `http://localhost:4000`).
+
+### 3. Installing dependencies
+
+```bash
+npm install
+```
+
+This installs the Razorpay SDK and type definitions (`razorpay`, `@types/morgan`, etc.).
+
+### 4. Running locally
+
+Open **two** terminals:
+
+```bash
+# Terminal 1 – backend (Express)
+npm run server
+
+# Terminal 2 – frontend (Vite)
+npm run dev
+```
+
+Navigate to `http://localhost:5173` (default Vite port).
+
+### 5. Testing the flow
+
+1. Create some expenses in the UI.
+2. Click **Settle Up → Pay with UPI**.
+3. Razorpay Checkout opens – use **Test Mode** credentials if your keys are in test mode.
+4. After successful payment & server-side signature verification:
+   * A toast is shown – *Payment Successful*.
+   * All active expenses are marked as **Settled**.
+
+> **Note:** In Razorpay *Test Mode* you can use the `upi` test method (`success@razorpay`) to simulate a successful UPI payment.
+
+### 6. Production deployment
+
+* Expose the Express server over HTTPS (Razorpay Checkout requires HTTPS in production).
+* Set `VITE_API_BASE_URL` in the frontend environment to the live backend URL.
+* Use your **live** Razorpay keys.
+* Configure allowed domains in Razorpay Dashboard → Settings → Webhooks / Allowed Origins if needed.
+
+### 7. Logging & Error handling
+
+* All HTTP requests are logged using **morgan** (`combined` format).
+* A global error-handler middleware sends JSON `{ error: 'Internal Server Error' }` for uncaught exceptions while logging the stack.
+* Payment routes have granular `try/catch` blocks with helpful console output for easier debugging.
+
+---
+
+Feel free to open an issue or pull request if you encounter any problems! 🌟
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/c9e3dcaf-f123-42b2-9105-fd7ccdfcff42) and click on Share -> Publish.

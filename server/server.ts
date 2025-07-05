@@ -1,10 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { emailService, NotificationData } from './emailService.js';
 import paymentRoutes from './paymentRoutes.js';
+import morgan from 'morgan';
 
 interface Group {
   id: string;
@@ -29,6 +30,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// HTTP request logging
+app.use(morgan('combined'));
 
 // Payment routes
 app.use('/payments', paymentRoutes);
@@ -271,4 +275,10 @@ app.post('/notifications/test', async (req: Request, res: Response<{ success: bo
 /* Start server */
 app.listen(PORT, () => {
   console.log(`Group server running on http://localhost:${PORT}`);
+});
+
+// Global error handler – any uncaught errors
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('[GLOBAL ERROR]', err);
+  res.status(500).json({ error: 'Internal Server Error' });
 });

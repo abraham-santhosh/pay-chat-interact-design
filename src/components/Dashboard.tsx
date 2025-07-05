@@ -11,6 +11,7 @@ import Groups from './Groups';
 import Profile from './Profile';
 import AutoCalculate from './AutoCalculate';
 import { useToast } from '@/hooks/use-toast';
+import { API_BASE_URL } from '@/config';
 
 interface Expense {
   id: string;
@@ -225,7 +226,7 @@ const Dashboard = () => {
 
     try {
       // Create an order on the backend
-      const orderRes = await fetch('http://localhost:4000/payments/create-order', {
+      const orderRes = await fetch(`${API_BASE_URL}/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: totalAmount }),
@@ -246,7 +247,7 @@ const Dashboard = () => {
         order_id: orderData.id,
         handler: async (response: any) => {
           try {
-            const verifyRes = await fetch('http://localhost:4000/payments/verify', {
+            const verifyRes = await fetch(`${API_BASE_URL}/payments/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(response),

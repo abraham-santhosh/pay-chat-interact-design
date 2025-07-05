@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { API_BASE_URL } from '@/config';
 
 interface Group {
   id: string;
@@ -20,8 +21,8 @@ interface GroupsProps {
   selectedGroup: Group | null;
 }
 
-// Backend API base URL – adjust if your server runs elsewhere
-const API_BASE = 'http://localhost:4000';
+// Backend API base URL
+const API_BASE = API_BASE_URL;
 
 const Groups: React.FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
   const [groups, setGroups] = useState<Group[]>([]);
