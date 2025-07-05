@@ -15,7 +15,7 @@
     "jsx": "react-jsx",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["react", "react-dom"],
+    "types": ["react", "react-dom", "vite/client"],
 
     /* Linting */
     "strict": false,
