@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -171,7 +171,7 @@ const Dashboard: FC = () => {
     setShowExpenseForm(true);
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = (e: FormEvent) => {
     e.preventDefault();
     if (!signInForm.email || !signInForm.password) return;
     

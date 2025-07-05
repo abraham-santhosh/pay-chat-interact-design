@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, type FC, type FormEvent } from 'react';
 import { Plus, Users, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,7 @@ const Groups: FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
       .catch(console.error);
   }, []);
 
-  const createGroup = async (e: React.FormEvent) => {
+  const createGroup = async (e: FormEvent) => {
     e.preventDefault();
     if (!newGroupForm.name.trim()) return;
 

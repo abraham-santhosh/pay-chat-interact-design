@@ -52,8 +52,10 @@
     "express": "^4.19.2",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
+    "morgan": "^1.10.0",
     "next-themes": "^0.3.0",
     "nodemailer": "^7.0.4",
+    "razorpay": "^2.9.6",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -65,15 +67,14 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8",
-    "razorpay": "^2.11.0",
-    "morgan": "^1.10.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
+    "@types/morgan": "^1.9.4",
     "@types/node": "^22.16.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
@@ -89,7 +90,6 @@
     "tsx": "^4.7.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1",
-    "@types/morgan": "^1.9.4"
+    "vite": "^5.4.1"
   }
 }
