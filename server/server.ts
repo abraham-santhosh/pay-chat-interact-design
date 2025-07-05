@@ -1,56 +1,64 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-// Resolve __dirname because we are using ES modules
+interface Group {
+  id: string;
+  name: string;
+  description: string;
+  members: string[];
+  createdAt: string;
+}
+
+// Resolve __dirname in ES modules
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = join(__dirname, 'groups.json');
 
-// Ensure the data file exists
+// Ensure the data file exists so that JSON.parse doesn't fail on first run
 if (!existsSync(DATA_FILE)) {
   writeFileSync(DATA_FILE, '[]', 'utf-8');
 }
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-function getGroups() {
+/* Helper functions */
+const getGroups = (): Group[] => {
   try {
     const raw = readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(raw);
+    return JSON.parse(raw) as Group[];
   } catch (err) {
     console.error('Failed to read groups file', err);
     return [];
   }
-}
+};
 
-function saveGroups(groups) {
+const saveGroups = (groups: Group[]): void => {
   try {
     writeFileSync(DATA_FILE, JSON.stringify(groups, null, 2), 'utf-8');
   } catch (err) {
     console.error('Failed to write groups file', err);
   }
-}
+};
 
-// Get all groups
-app.get('/groups', (_req, res) => {
+/* Routes */
+app.get('/groups', (_req: Request, res: Response<Group[]>) => {
   res.json(getGroups());
 });
 
-// Create a new group
-app.post('/groups', (req, res) => {
-  const { name, description } = req.body;
+app.post('/groups', (req: Request, res: Response<Group | { error: string }>) => {
+  const { name, description } = req.body as Partial<Group>;
   if (!name) {
     return res.status(400).json({ error: 'Name is required' });
   }
 
   const groups = getGroups();
-  const newGroup = {
+  const newGroup: Group = {
     id: Date.now().toString(),
     name,
     description: description || '',
@@ -61,13 +69,13 @@ app.post('/groups', (req, res) => {
   groups.push(newGroup);
   saveGroups(groups);
 
-  res.status(201).json(newGroup);
+  return res.status(201).json(newGroup);
 });
 
-// Add a member to a group
-app.post('/groups/:groupId/members', (req, res) => {
+app.post('/groups/:groupId/members', (req: Request, res: Response<Group | { error: string }>) => {
   const { groupId } = req.params;
-  const { username } = req.body;
+  const { username } = req.body as { username?: string };
+
   if (!username) {
     return res.status(400).json({ error: 'Username is required' });
   }
@@ -83,12 +91,12 @@ app.post('/groups/:groupId/members', (req, res) => {
     saveGroups(groups);
   }
 
-  res.json(group);
+  return res.json(group);
 });
 
-// Remove a member from a group
-app.delete('/groups/:groupId/members/:username', (req, res) => {
+app.delete('/groups/:groupId/members/:username', (req: Request, res: Response<Group | { error: string }>) => {
   const { groupId, username } = req.params;
+
   const groups = getGroups();
   const group = groups.find((g) => g.id === groupId);
   if (!group) {
@@ -97,11 +105,11 @@ app.delete('/groups/:groupId/members/:username', (req, res) => {
 
   group.members = group.members.filter((m) => m !== username);
   saveGroups(groups);
-  res.json(group);
+
+  return res.json(group);
 });
 
-// Delete a group
-app.delete('/groups/:groupId', (req, res) => {
+app.delete('/groups/:groupId', (req: Request, res: Response<Group | { error: string }>) => {
   const { groupId } = req.params;
   let groups = getGroups();
   const idx = groups.findIndex((g) => g.id === groupId);
@@ -111,9 +119,11 @@ app.delete('/groups/:groupId', (req, res) => {
 
   const [removed] = groups.splice(idx, 1);
   saveGroups(groups);
-  res.json(removed);
+
+  return res.json(removed);
 });
 
+/* Start server */
 app.listen(PORT, () => {
   console.log(`Group server running on http://localhost:${PORT}`);
 });
