@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, type FC } from 'react';
 import { Plus, Users, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,7 @@ interface GroupsProps {
 // Backend API base URL
 const API_BASE = API_BASE_URL;
 
-const Groups: React.FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
+const Groups: FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAddMember, setShowAddMember] = useState<string | null>(null);

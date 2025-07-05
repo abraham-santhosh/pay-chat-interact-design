@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, type FC } from 'react';
 import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,7 +64,7 @@ const loadRazorpayScript = (): Promise<boolean> => {
   });
 };
 
-const Dashboard = () => {
+const Dashboard: FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
