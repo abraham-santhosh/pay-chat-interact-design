@@ -14,6 +14,15 @@ Simply visit the [Lovable Project](https://lovable.dev/projects/c9e3dcaf-f123-42
 
 Changes made via Lovable will be committed automatically to this repo.
 
+AI tools used are 
+
+-Lovable
+-Grok AI
+-Replit
+-Bolt
+-Cursor
+
+
 **Use your preferred IDE**
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
