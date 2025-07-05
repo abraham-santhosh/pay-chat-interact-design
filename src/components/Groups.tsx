@@ -16,7 +16,7 @@ interface Group {
 }
 
 interface GroupsProps {
-  onGroupSelect: (group: Group) => void;
+  onGroupSelect: (group: Group | null) => void;
   selectedGroup: Group | null;
 }
 
@@ -120,7 +120,7 @@ const Groups: React.FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
       setGroups(groups.filter((group) => group.id !== groupId));
 
       if (selectedGroup?.id === groupId) {
-        onGroupSelect(null as any);
+        onGroupSelect(null);
       }
 
       toast({

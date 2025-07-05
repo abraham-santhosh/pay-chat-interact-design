@@ -111,7 +111,7 @@ app.delete('/groups/:groupId/members/:username', (req: Request, res: Response<Gr
 
 app.delete('/groups/:groupId', (req: Request, res: Response<Group | { error: string }>) => {
   const { groupId } = req.params;
-  let groups = getGroups();
+  const groups = getGroups();
   const idx = groups.findIndex((g) => g.id === groupId);
   if (idx === -1) {
     return res.status(404).json({ error: 'Group not found' });
