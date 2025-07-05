@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +19,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hi! I'm your SplitWise assistant. I can help you with expense splitting, payment questions, or general guidance. How can I help you today?",
+      text: "Hi! I'm your Split Easy assistant. I can help you with expense splitting, payment questions, group management, or general guidance. How can I help you today?",
       isBot: true,
       timestamp: new Date(),
     }
@@ -40,31 +39,43 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
   const getBotResponse = (userMessage: string): string => {
     const lowerMessage = userMessage.toLowerCase();
     
+    if (lowerMessage.includes('group') || lowerMessage.includes('create')) {
+      return "To create a group, go to the 'Groups' tab and click 'Create Group'. Add members by email and start splitting expenses within your group. Groups help you organize expenses for roommates, trips, or any shared activities!";
+    }
+    
+    if (lowerMessage.includes('calculate') || lowerMessage.includes('balance') || lowerMessage.includes('owe')) {
+      return "Check out the 'Auto-Calculate' tab to see who owes what to whom! Split Easy automatically calculates balances and suggests the minimum number of transactions needed to settle all debts. It's super smart!";
+    }
+    
     if (lowerMessage.includes('expense') || lowerMessage.includes('add')) {
-      return "To add an expense, click the 'Add Expense' button on the main dashboard. Fill in the description, amount, who paid, and who should split it. The expense will be automatically calculated and added to your group!";
+      return "To add an expense, click the 'Add Expense' button on the dashboard. Fill in the description, amount, who paid, and who should split it. The expense will be automatically calculated and added to your group!";
     }
     
     if (lowerMessage.includes('settle') || lowerMessage.includes('pay')) {
-      return "To settle up, click the 'Settle Up' button. You can pay using Google Pay for quick transactions, or mark expenses as manually settled. All balances will be updated automatically!";
+      return "To settle up, click the 'Settle Up' button or use the Auto-Calculate feature for smart settlement suggestions. You can pay using Google Pay for quick transactions, or mark expenses as manually settled. All balances will be updated automatically!";
     }
     
     if (lowerMessage.includes('google pay') || lowerMessage.includes('payment')) {
-      return "Google Pay integration allows you to quickly settle debts with friends. When you click 'Pay with Google Pay', you'll be redirected to complete the payment securely. The settlement will be automatically recorded in SplitWise!";
+      return "Google Pay integration allows you to quickly settle debts with friends. When you click 'Pay with Google Pay', you'll be redirected to complete the payment securely. The settlement will be automatically recorded in Split Easy!";
+    }
+    
+    if (lowerMessage.includes('profile') || lowerMessage.includes('security')) {
+      return "You can access your profile settings by clicking the Profile button in the header. Here you can update your personal information, change your password, and manage security settings. Your data is encrypted and secure!";
     }
     
     if (lowerMessage.includes('split') || lowerMessage.includes('divide')) {
-      return "SplitWise automatically divides expenses equally among all participants you specify. For example, if you add 3 people to a $30 dinner, each person owes $10. You can see individual balances in the expense details!";
+      return "Split Easy automatically divides expenses equally among all participants you specify. The Auto-Calculate feature shows you exactly who owes what and suggests the most efficient way to settle up!";
     }
     
     if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
-      return "Here's what you can do with SplitWise:\n• Add expenses and specify who should split them\n• Track total spending and active expenses\n• Settle up with friends using Google Pay\n• View pending settlements\n• Get automatic balance calculations\n\nWhat would you like to know more about?";
+      return "Here's what you can do with Split Easy:\n• Create groups for different friend circles\n• Add expenses and specify who should split them\n• Use Auto-Calculate to see balances and settlement suggestions\n• Track total spending and active expenses\n• Settle up with friends using Google Pay\n• Manage your profile and security settings\n\nWhat would you like to know more about?";
     }
     
     if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      return "Hello! Welcome to SplitWise. I'm here to help you manage shared expenses with friends. What would you like to know?";
+      return "Hello! Welcome to Split Easy. I'm here to help you manage shared expenses with friends and groups. What would you like to know?";
     }
     
-    return "I understand you're asking about expense splitting! Here are some things I can help with:\n• Adding and managing expenses\n• Settling up with Google Pay\n• Understanding how splits are calculated\n• General app guidance\n\nCould you be more specific about what you'd like to know?";
+    return "I understand you're asking about Split Easy! Here are some things I can help with:\n• Creating and managing groups\n• Adding and tracking expenses\n• Auto-calculating balances and settlements\n• Using Google Pay for payments\n• Profile and security settings\n• General app guidance\n\nCould you be more specific about what you'd like to know?";
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -104,7 +115,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            <h3 className="font-semibold">SplitWise Assistant</h3>
+            <h3 className="font-semibold">Split Easy Assistant</h3>
           </div>
           <Button
             variant="ghost"
@@ -174,7 +185,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
             <Input
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask me anything about SplitWise..."
+              placeholder="Ask me anything about Split Easy..."
               className="flex-1"
             />
             <Button 

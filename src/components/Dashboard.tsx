@@ -1,11 +1,15 @@
-
-import React, { useState } from 'react';
-import { Plus, Receipt, MessageCircle, LogIn, LogOut, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ExpenseForm from './ExpenseForm';
 import ChatBot from './ChatBot';
+import LoadingScreen from './LoadingScreen';
+import Groups from './Groups';
+import Profile from './Profile';
+import AutoCalculate from './AutoCalculate';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -23,16 +27,35 @@ interface User {
   email: string;
 }
 
+interface Group {
+  id: string;
+  name: string;
+  members: string[];
+}
+
 const Dashboard = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showChatBot, setShowChatBot] = useState(false);
   const [showSettleUp, setShowSettleUp] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [signInForm, setSignInForm] = useState({ email: '', password: '', name: '' });
   const [isSignUp, setIsSignUp] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
+
+  // Loading screen effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const activeExpenses = expenses.filter(expense => !expense.settled).length;
@@ -102,6 +125,33 @@ const Dashboard = () => {
     setShowSettleUp(false);
   };
 
+  const handleAutoSettle = (settlement: { from: string; to: string; amount: number }) => {
+    // In a real app, this would process the payment
+    toast({
+      title: "Settlement Processed",
+      description: `${settlement.from} paid ${settlement.to} $${settlement.amount.toFixed(2)}`,
+    });
+    
+    // Mark related expenses as settled (simplified logic)
+    const updatedExpenses = expenses.map(expense => {
+      if (!expense.settled && 
+          (expense.paidBy === settlement.to || expense.participants.includes(settlement.from))) {
+        return { ...expense, settled: true };
+      }
+      return expense;
+    });
+    
+    setExpenses(updatedExpenses);
+  };
+
+  const handleUpdateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -123,6 +173,14 @@ const Dashboard = () => {
             <div className="flex items-center gap-4">
               {user ? (
                 <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => setShowProfile(true)}
+                    variant="outline"
+                    className="bg-transparent border-white text-white hover:bg-white hover:text-purple-600"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Profile
+                  </Button>
                   <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
                     <User className="h-4 w-4" />
                     <span className="text-sm font-medium">{user.name}</span>
@@ -152,52 +210,156 @@ const Dashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 hover:scale-105 transition-transform duration-200">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-2 opacity-90">Total Expenses</h3>
-              <p className="text-3xl font-bold">${totalExpenses.toFixed(2)}</p>
-            </CardContent>
-          </Card>
+        {user ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="groups">Groups</TabsTrigger>
+              <TabsTrigger value="calculate">Auto-Calculate</TabsTrigger>
+              <TabsTrigger value="expenses">All Expenses</TabsTrigger>
+            </TabsList>
 
-          <Card className="bg-gradient-to-br from-orange-500 to-amber-600 text-white border-0 hover:scale-105 transition-transform duration-200">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-2 opacity-90">Active Expenses</h3>
-              <p className="text-3xl font-bold">{activeExpenses}</p>
-            </CardContent>
-          </Card>
+            <TabsContent value="dashboard" className="space-y-8">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 hover:scale-105 transition-transform duration-200">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-2 opacity-90">Total Expenses</h3>
+                    <p className="text-3xl font-bold">${totalExpenses.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
 
-          <Card className="bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 hover:scale-105 transition-transform duration-200">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-2 opacity-90">Pending Settlements</h3>
-              <p className="text-3xl font-bold">{pendingSettlements}</p>
-            </CardContent>
-          </Card>
-        </div>
+                <Card className="bg-gradient-to-br from-orange-500 to-amber-600 text-white border-0 hover:scale-105 transition-transform duration-200">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-2 opacity-90">Active Expenses</h3>
+                    <p className="text-3xl font-bold">{activeExpenses}</p>
+                  </CardContent>
+                </Card>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Button 
-            onClick={() => setShowExpenseForm(true)}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-            disabled={!user}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Add Expense
-          </Button>
+                <Card className="bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 hover:scale-105 transition-transform duration-200">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-2 opacity-90">Pending Settlements</h3>
+                    <p className="text-3xl font-bold">{pendingSettlements}</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-          <Button 
-            onClick={() => setShowSettleUp(true)}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-            disabled={!user || activeExpenses === 0}
-          >
-            <Receipt className="mr-2 h-5 w-5" />
-            Settle Up
-          </Button>
-        </div>
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button 
+                  onClick={() => setShowExpenseForm(true)}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add Expense
+                </Button>
 
-        {!user && (
+                <Button 
+                  onClick={() => setShowSettleUp(true)}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                  disabled={activeExpenses === 0}
+                >
+                  <Receipt className="mr-2 h-5 w-5" />
+                  Settle Up
+                </Button>
+              </div>
+
+              {/* Recent Expenses */}
+              <Card className="shadow-lg">
+                <CardContent className="p-6">
+                  <h2 className="text-2xl font-bold mb-6 text-gray-800">Recent Expenses</h2>
+                  
+                  {expenses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Receipt className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-600 mb-2">No expenses yet</h3>
+                      <p className="text-gray-500">Add your first expense to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {expenses.slice(-10).reverse().map((expense) => (
+                        <div 
+                          key={expense.id} 
+                          className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
+                            expense.settled ? 'opacity-60' : ''
+                          }`}
+                        >
+                          <div>
+                            <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                              {expense.description}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              Paid by {expense.paidBy} • {expense.date}
+                              {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                              ${expense.amount.toFixed(2)}
+                            </p>
+                            <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="groups">
+              <Groups onGroupSelect={setSelectedGroup} selectedGroup={selectedGroup} />
+            </TabsContent>
+
+            <TabsContent value="calculate">
+              <AutoCalculate expenses={expenses} onSettle={handleAutoSettle} />
+            </TabsContent>
+
+            <TabsContent value="expenses">
+              {/* All Expenses View */}
+              <Card className="shadow-lg">
+                <CardContent className="p-6">
+                  <h2 className="text-2xl font-bold mb-6 text-gray-800">All Expenses</h2>
+                  
+                  {expenses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Receipt className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-600 mb-2">No expenses yet</h3>
+                      <p className="text-gray-500">Add your first expense to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {expenses.map((expense) => (
+                        <div 
+                          key={expense.id} 
+                          className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
+                            expense.settled ? 'opacity-60' : ''
+                          }`}
+                        >
+                          <div>
+                            <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                              {expense.description}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              Paid by {expense.paidBy} • {expense.date}
+                              {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                              ${expense.amount.toFixed(2)}
+                            </p>
+                            <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        ) : (
           <Card className="mb-8 border-orange-200 bg-orange-50">
             <CardContent className="p-6 text-center">
               <h3 className="text-lg font-semibold text-orange-800 mb-2">Sign in to get started</h3>
@@ -205,48 +367,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         )}
-
-        {/* Recent Expenses */}
-        <Card className="shadow-lg">
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Recent Expenses</h2>
-            
-            {expenses.length === 0 ? (
-              <div className="text-center py-12">
-                <Receipt className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">No expenses yet</h3>
-                <p className="text-gray-500">Add your first expense to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {expenses.map((expense) => (
-                  <div 
-                    key={expense.id} 
-                    className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
-                      expense.settled ? 'opacity-60' : ''
-                    }`}
-                  >
-                    <div>
-                      <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
-                        {expense.description}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        Paid by {expense.paidBy} • {expense.date}
-                        {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
-                        ${expense.amount.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-600">{expense.participants.length} people</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Floating Chat Button */}
@@ -256,6 +376,16 @@ const Dashboard = () => {
       >
         <MessageCircle className="h-6 w-6" />
       </Button>
+
+      {/* Profile Dialog */}
+      {user && (
+        <Profile 
+          user={user} 
+          onUpdateUser={handleUpdateUser}
+          open={showProfile}
+          onOpenChange={setShowProfile}
+        />
+      )}
 
       {/* Sign In Dialog */}
       <Dialog open={showSignIn} onOpenChange={setShowSignIn}>
