@@ -238,14 +238,14 @@ const Dashboard: FC = () => {
         throw new Error(orderData.error || 'Unable to create payment order');
       }
 
-      const options: any = {
+      const options: RazorpayOptions = {
         key: orderData.key_id,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Split Easy',
         description: 'Expense Settlement',
         order_id: orderData.id,
-        handler: async (response: any) => {
+        handler: async (response: RazorpayResponse) => {
           try {
             const verifyRes = await fetch(`${API_BASE_URL}/payments/verify`, {
               method: 'POST',
@@ -265,9 +265,10 @@ const Dashboard: FC = () => {
             } else {
               toast({ title: 'Verification Failed', description: verifyData.error || 'Could not verify payment.' });
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : 'Something went wrong.';
             console.error(err);
-            toast({ title: 'Payment Error', description: err.message || 'Something went wrong.' });
+            toast({ title: 'Payment Error', description: errMsg });
           }
         },
         prefill: {
@@ -283,9 +284,10 @@ const Dashboard: FC = () => {
       // @ts-ignore - Razorpay will be available globally after script loads
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Failed to initiate payment.';
       console.error(error);
-      toast({ title: 'Payment Error', description: error.message || 'Failed to initiate payment.' });
+      toast({ title: 'Payment Error', description: errMsg });
     }
   };
 

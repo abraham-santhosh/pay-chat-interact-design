@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-definitions */
 // Global type definitions for Razorpay checkout SDK
 // This makes TypeScript aware of the window.Razorpay constructor
 
@@ -31,7 +30,7 @@ interface RazorpayOptions {
 declare class Razorpay {
   constructor(options: RazorpayOptions);
   open(): void;
-  on(event: string, callback: (...args: any[]) => void): void;
+  on(event: string, callback: (...args: unknown[]) => void): void;
 }
 
 declare global {
@@ -39,8 +38,6 @@ declare global {
     Razorpay: typeof Razorpay;
   }
 }
-
-export {};
 
 // Minimal NodeJS type declaration for the 'razorpay' npm package
 declare module 'razorpay' {
