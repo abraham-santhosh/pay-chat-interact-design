@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,13 +14,28 @@ interface ExpenseFormProps {
     participants: string[];
   }) => void;
   onCancel: () => void;
+  initialData?: {
+    description: string;
+    amount: string;
+    paidBy: string;
+    participants: string;
+  };
 }
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({ onSubmit, onCancel }) => {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [paidBy, setPaidBy] = useState('');
-  const [participants, setParticipants] = useState('');
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ onSubmit, onCancel, initialData }) => {
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [amount, setAmount] = useState(initialData?.amount || '');
+  const [paidBy, setPaidBy] = useState(initialData?.paidBy || '');
+  const [participants, setParticipants] = useState(initialData?.participants || '');
+
+  useEffect(() => {
+    if (initialData) {
+      setDescription(initialData.description);
+      setAmount(initialData.amount);
+      setPaidBy(initialData.paidBy);
+      setParticipants(initialData.participants);
+    }
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,11 +61,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onSubmit, onCancel }) => {
       participants: participantList,
     });
 
-    // Reset form
-    setDescription('');
-    setAmount('');
-    setPaidBy('');
-    setParticipants('');
+    // Reset form only if not editing
+    if (!initialData) {
+      setDescription('');
+      setAmount('');
+      setPaidBy('');
+      setParticipants('');
+    }
   };
 
   return (
@@ -67,7 +84,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onSubmit, onCancel }) => {
       </div>
 
       <div>
-        <Label htmlFor="amount">Amount ($)</Label>
+        <Label htmlFor="amount">Amount (₹)</Label>
         <Input
           id="amount"
           type="number"
@@ -105,7 +122,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onSubmit, onCancel }) => {
 
       <div className="flex gap-2 pt-4">
         <Button type="submit" className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-          Add Expense
+          {initialData ? 'Update Expense' : 'Add Expense'}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
           Cancel

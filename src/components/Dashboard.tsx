@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings } from 'lucide-react';
+import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,6 +36,19 @@ interface Group {
   createdAt: string;
 }
 
+// Simple encryption functions (for demonstration - in production use proper encryption)
+const encryptData = (data: string): string => {
+  return btoa(data); // Base64 encoding as basic encryption
+};
+
+const decryptData = (encryptedData: string): string => {
+  try {
+    return atob(encryptedData); // Base64 decoding
+  } catch {
+    return encryptedData; // Return as-is if not encrypted
+  }
+};
+
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -43,6 +57,7 @@ const Dashboard = () => {
   const [showSettleUp, setShowSettleUp] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [signInForm, setSignInForm] = useState({ email: '', password: '', name: '' });
   const [isSignUp, setIsSignUp] = useState(false);
@@ -59,6 +74,46 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Load encrypted data from localStorage
+  useEffect(() => {
+    const encryptedExpenses = localStorage.getItem('splitEasyExpenses');
+    if (encryptedExpenses) {
+      try {
+        const decryptedData = decryptData(encryptedExpenses);
+        const parsedExpenses = JSON.parse(decryptedData);
+        setExpenses(parsedExpenses);
+      } catch (error) {
+        console.error('Error loading expenses:', error);
+      }
+    }
+
+    const encryptedUser = localStorage.getItem('splitEasyUser');
+    if (encryptedUser) {
+      try {
+        const decryptedUser = decryptData(encryptedUser);
+        const parsedUser = JSON.parse(decryptedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    }
+  }, []);
+
+  // Save encrypted data to localStorage
+  useEffect(() => {
+    if (expenses.length > 0) {
+      const encryptedExpenses = encryptData(JSON.stringify(expenses));
+      localStorage.setItem('splitEasyExpenses', encryptedExpenses);
+    }
+  }, [expenses]);
+
+  useEffect(() => {
+    if (user) {
+      const encryptedUser = encryptData(JSON.stringify(user));
+      localStorage.setItem('splitEasyUser', encryptedUser);
+    }
+  }, [user]);
+
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const activeExpenses = expenses.filter(expense => !expense.settled).length;
   const pendingSettlements = Math.floor(activeExpenses / 2);
@@ -73,8 +128,32 @@ const Dashboard = () => {
     setShowExpenseForm(false);
     toast({
       title: "Expense Added!",
-      description: `Added ${expense.description} for $${expense.amount}`,
+      description: `Added ${expense.description} for ₹${expense.amount}`,
     });
+  };
+
+  const updateExpense = (updatedExpense: Omit<Expense, 'id' | 'settled'>) => {
+    if (!editingExpense) return;
+    
+    const updatedExpenses = expenses.map(expense =>
+      expense.id === editingExpense.id
+        ? { ...updatedExpense, id: editingExpense.id, settled: editingExpense.settled }
+        : expense
+    );
+    
+    setExpenses(updatedExpenses);
+    setEditingExpense(null);
+    setShowExpenseForm(false);
+    
+    toast({
+      title: "Expense Updated!",
+      description: `Updated ${updatedExpense.description} for ₹${updatedExpense.amount}`,
+    });
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setShowExpenseForm(true);
   };
 
   const handleSignIn = (e: React.FormEvent) => {
@@ -83,10 +162,12 @@ const Dashboard = () => {
     
     if (isSignUp && !signInForm.name) return;
 
-    setUser({
+    const newUser = {
       name: signInForm.name || signInForm.email.split('@')[0],
       email: signInForm.email,
-    });
+    };
+
+    setUser(newUser);
     
     setShowSignIn(false);
     setSignInForm({ email: '', password: '', name: '' });
@@ -99,6 +180,7 @@ const Dashboard = () => {
 
   const handleSignOut = () => {
     setUser(null);
+    localStorage.removeItem('splitEasyUser');
     toast({
       title: "Signed Out",
       description: "You have been signed out successfully",
@@ -107,8 +189,8 @@ const Dashboard = () => {
 
   const handleGooglePay = () => {
     toast({
-      title: "Google Pay",
-      description: "Google Pay integration would be implemented here with proper API keys",
+      title: "UPI Payment",
+      description: "UPI payment integration would be implemented here with proper API keys",
     });
   };
 
@@ -131,7 +213,7 @@ const Dashboard = () => {
     // In a real app, this would process the payment
     toast({
       title: "Settlement Processed",
-      description: `${settlement.from} paid ${settlement.to} $${settlement.amount.toFixed(2)}`,
+      description: `${settlement.from} paid ${settlement.to} ₹${settlement.amount.toFixed(2)}`,
     });
     
     // Mark related expenses as settled (simplified logic)
@@ -148,6 +230,11 @@ const Dashboard = () => {
 
   const handleUpdateUser = (updatedUser: User) => {
     setUser(updatedUser);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingExpense(null);
+    setShowExpenseForm(false);
   };
 
   if (isLoading) {
@@ -227,7 +314,7 @@ const Dashboard = () => {
                 <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 hover:scale-105 transition-transform duration-200">
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-2 opacity-90">Total Expenses</h3>
-                    <p className="text-3xl font-bold">${totalExpenses.toFixed(2)}</p>
+                    <p className="text-3xl font-bold">₹{totalExpenses.toFixed(2)}</p>
                   </CardContent>
                 </Card>
 
@@ -286,7 +373,7 @@ const Dashboard = () => {
                             expense.settled ? 'opacity-60' : ''
                           }`}
                         >
-                          <div>
+                          <div className="flex-1">
                             <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
                               {expense.description}
                             </h4>
@@ -295,11 +382,23 @@ const Dashboard = () => {
                               {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
-                              ${expense.amount.toFixed(2)}
-                            </p>
-                            <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                                ₹{expense.amount.toFixed(2)}
+                              </p>
+                              <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                            </div>
+                            {!expense.settled && (
+                              <Button
+                                onClick={() => handleEditExpense(expense)}
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -338,7 +437,7 @@ const Dashboard = () => {
                             expense.settled ? 'opacity-60' : ''
                           }`}
                         >
-                          <div>
+                          <div className="flex-1">
                             <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
                               {expense.description}
                             </h4>
@@ -347,11 +446,23 @@ const Dashboard = () => {
                               {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
-                              ${expense.amount.toFixed(2)}
-                            </p>
-                            <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                                ₹{expense.amount.toFixed(2)}
+                              </p>
+                              <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                            </div>
+                            {!expense.settled && (
+                              <Button
+                                onClick={() => handleEditExpense(expense)}
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -460,12 +571,26 @@ const Dashboard = () => {
       </Dialog>
 
       {/* Expense Form Dialog */}
-      <Dialog open={showExpenseForm} onOpenChange={setShowExpenseForm}>
+      <Dialog open={showExpenseForm} onOpenChange={(open) => {
+        if (!open) {
+          setEditingExpense(null);
+        }
+        setShowExpenseForm(open);
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Expense</DialogTitle>
+            <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
           </DialogHeader>
-          <ExpenseForm onSubmit={addExpense} onCancel={() => setShowExpenseForm(false)} />
+          <ExpenseForm 
+            onSubmit={editingExpense ? updateExpense : addExpense} 
+            onCancel={editingExpense ? handleCancelEdit : () => setShowExpenseForm(false)}
+            initialData={editingExpense ? {
+              description: editingExpense.description,
+              amount: editingExpense.amount.toString(),
+              paidBy: editingExpense.paidBy,
+              participants: editingExpense.participants.join(', ')
+            } : undefined}
+          />
         </DialogContent>
       </Dialog>
 
@@ -483,7 +608,7 @@ const Dashboard = () => {
                 <div key={expense.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-semibold text-gray-800">{expense.description}</h4>
-                    <p className="text-sm text-gray-600">${expense.amount.toFixed(2)}</p>
+                    <p className="text-sm text-gray-600">₹{expense.amount.toFixed(2)}</p>
                   </div>
                   <Button
                     onClick={() => handleManualSettlement(expense.id)}
@@ -501,7 +626,7 @@ const Dashboard = () => {
                 onClick={handleGooglePay}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-12 mb-2"
               >
-                Pay with Google Pay
+                Pay with UPI
               </Button>
             </div>
           </div>
