@@ -1,10 +1,8 @@
 
 import React, { useState } from 'react';
-import { Plus, Receipt, MessageCircle, X, Send } from 'lucide-react';
+import { Plus, Receipt, MessageCircle, LogIn, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ExpenseForm from './ExpenseForm';
 import ChatBot from './ChatBot';
@@ -17,6 +15,12 @@ interface Expense {
   paidBy: string;
   date: string;
   participants: string[];
+  settled: boolean;
+}
+
+interface User {
+  name: string;
+  email: string;
 }
 
 const Dashboard = () => {
@@ -24,16 +28,21 @@ const Dashboard = () => {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showChatBot, setShowChatBot] = useState(false);
   const [showSettleUp, setShowSettleUp] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [signInForm, setSignInForm] = useState({ email: '', password: '', name: '' });
+  const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const activeExpenses = expenses.length;
-  const pendingSettlements = Math.floor(activeExpenses / 2); // Simple calculation
+  const activeExpenses = expenses.filter(expense => !expense.settled).length;
+  const pendingSettlements = Math.floor(activeExpenses / 2);
 
-  const addExpense = (expense: Omit<Expense, 'id'>) => {
+  const addExpense = (expense: Omit<Expense, 'id' | 'settled'>) => {
     const newExpense = {
       ...expense,
       id: Date.now().toString(),
+      settled: false,
     };
     setExpenses([...expenses, newExpense]);
     setShowExpenseForm(false);
@@ -43,12 +52,54 @@ const Dashboard = () => {
     });
   };
 
+  const handleSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signInForm.email || !signInForm.password) return;
+    
+    if (isSignUp && !signInForm.name) return;
+
+    setUser({
+      name: signInForm.name || signInForm.email.split('@')[0],
+      email: signInForm.email,
+    });
+    
+    setShowSignIn(false);
+    setSignInForm({ email: '', password: '', name: '' });
+    
+    toast({
+      title: isSignUp ? "Account Created!" : "Welcome Back!",
+      description: `Successfully ${isSignUp ? 'signed up' : 'signed in'}`,
+    });
+  };
+
+  const handleSignOut = () => {
+    setUser(null);
+    toast({
+      title: "Signed Out",
+      description: "You have been signed out successfully",
+    });
+  };
+
   const handleGooglePay = () => {
-    // Google Pay integration placeholder
     toast({
       title: "Google Pay",
       description: "Google Pay integration would be implemented here with proper API keys",
     });
+  };
+
+  const handleManualSettlement = (expenseId: string) => {
+    setExpenses(expenses.map(expense => 
+      expense.id === expenseId 
+        ? { ...expense, settled: true }
+        : expense
+    ));
+    
+    toast({
+      title: "Expense Settled",
+      description: "Expense has been marked as settled",
+    });
+    
+    setShowSettleUp(false);
   };
 
   return (
@@ -56,8 +107,47 @@ const Dashboard = () => {
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-700 text-white">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold mb-2">SplitWise</h1>
-          <p className="text-lg opacity-90">Split expenses with friends easily</p>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              {/* Logo */}
+              <div className="bg-white text-purple-600 p-3 rounded-full">
+                <Receipt className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Split Easy</h1>
+                <p className="text-lg opacity-90">Split expenses with friends easily</p>
+              </div>
+            </div>
+            
+            {/* Auth Section */}
+            <div className="flex items-center gap-4">
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+                    <User className="h-4 w-4" />
+                    <span className="text-sm font-medium">{user.name}</span>
+                  </div>
+                  <Button
+                    onClick={handleSignOut}
+                    variant="outline"
+                    className="bg-transparent border-white text-white hover:bg-white hover:text-purple-600"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => setShowSignIn(true)}
+                  variant="outline"
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-purple-600"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -91,6 +181,7 @@ const Dashboard = () => {
           <Button 
             onClick={() => setShowExpenseForm(true)}
             className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            disabled={!user}
           >
             <Plus className="mr-2 h-5 w-5" />
             Add Expense
@@ -99,11 +190,21 @@ const Dashboard = () => {
           <Button 
             onClick={() => setShowSettleUp(true)}
             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            disabled={!user || activeExpenses === 0}
           >
             <Receipt className="mr-2 h-5 w-5" />
             Settle Up
           </Button>
         </div>
+
+        {!user && (
+          <Card className="mb-8 border-orange-200 bg-orange-50">
+            <CardContent className="p-6 text-center">
+              <h3 className="text-lg font-semibold text-orange-800 mb-2">Sign in to get started</h3>
+              <p className="text-orange-600">Create an account or sign in to start tracking your expenses</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Expenses */}
         <Card className="shadow-lg">
@@ -119,13 +220,25 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-4">
                 {expenses.map((expense) => (
-                  <div key={expense.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div 
+                    key={expense.id} 
+                    className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
+                      expense.settled ? 'opacity-60' : ''
+                    }`}
+                  >
                     <div>
-                      <h4 className="font-semibold text-gray-800">{expense.description}</h4>
-                      <p className="text-sm text-gray-600">Paid by {expense.paidBy} • {expense.date}</p>
+                      <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                        {expense.description}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Paid by {expense.paidBy} • {expense.date}
+                        {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-gray-800">${expense.amount.toFixed(2)}</p>
+                      <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                        ${expense.amount.toFixed(2)}
+                      </p>
                       <p className="text-sm text-gray-600">{expense.participants.length} people</p>
                     </div>
                   </div>
@@ -144,6 +257,76 @@ const Dashboard = () => {
         <MessageCircle className="h-6 w-6" />
       </Button>
 
+      {/* Sign In Dialog */}
+      <Dialog open={showSignIn} onOpenChange={setShowSignIn}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isSignUp ? 'Create Account' : 'Sign In'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            {isSignUp && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={signInForm.name}
+                  onChange={(e) => setSignInForm({...signInForm, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required={isSignUp}
+                />
+              </div>
+            )}
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={signInForm.email}
+                onChange={(e) => setSignInForm({...signInForm, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={signInForm.password}
+                onChange={(e) => setSignInForm({...signInForm, password: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+            
+            <div className="flex gap-2 pt-4">
+              <Button type="submit" className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </Button>
+            </div>
+            
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-purple-600 hover:text-purple-700"
+              >
+                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Expense Form Dialog */}
       <Dialog open={showExpenseForm} onOpenChange={setShowExpenseForm}>
         <DialogContent className="max-w-md">
@@ -158,31 +341,37 @@ const Dashboard = () => {
       <Dialog open={showSettleUp} onOpenChange={setShowSettleUp}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Settle Up</DialogTitle>
+            <DialogTitle>Settle Expenses</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-gray-600">Choose how you'd like to settle your expenses:</p>
+            <p className="text-gray-600">Choose expenses to settle:</p>
             
-            <Button 
-              onClick={handleGooglePay}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-12"
-            >
-              Pay with Google Pay
-            </Button>
+            <div className="max-h-64 overflow-y-auto space-y-2">
+              {expenses.filter(expense => !expense.settled).map((expense) => (
+                <div key={expense.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <h4 className="font-semibold text-gray-800">{expense.description}</h4>
+                    <p className="text-sm text-gray-600">${expense.amount.toFixed(2)}</p>
+                  </div>
+                  <Button
+                    onClick={() => handleManualSettlement(expense.id)}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Settle
+                  </Button>
+                </div>
+              ))}
+            </div>
             
-            <Button 
-              variant="outline" 
-              className="w-full h-12"
-              onClick={() => {
-                toast({
-                  title: "Manual Settlement",
-                  description: "Manual settlement tracking would be implemented here",
-                });
-                setShowSettleUp(false);
-              }}
-            >
-              Mark as Settled
-            </Button>
+            <div className="pt-4 border-t">
+              <Button 
+                onClick={handleGooglePay}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-12 mb-2"
+              >
+                Pay with Google Pay
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
