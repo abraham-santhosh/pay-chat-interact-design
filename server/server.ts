@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { emailService, NotificationData } from './emailService.js';
+import paymentRoutes from './paymentRoutes.js';
 
 interface Group {
   id: string;
@@ -28,6 +29,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Payment routes
+app.use('/payments', paymentRoutes);
 
 /* Helper functions */
 const getGroups = (): Group[] => {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,6 +46,21 @@ const decryptData = (encryptedData: string): string => {
   } catch {
     return encryptedData; // Return as-is if not encrypted
   }
+};
+
+// Utility to dynamically load the Razorpay checkout script
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (document.querySelector('#razorpay-sdk')) {
+      return resolve(true);
+    }
+    const script = document.createElement('script');
+    script.id = 'razorpay-sdk';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 };
 
 const Dashboard = () => {
@@ -187,11 +201,91 @@ const Dashboard = () => {
     });
   };
 
-  const handleGooglePay = () => {
-    toast({
-      title: "UPI Payment",
-      description: "UPI payment integration would be implemented here with proper API keys",
-    });
+  /**
+   * Trigger Razorpay checkout for settling all active expenses.
+   * On successful payment verification, we mark all active expenses as settled.
+   */
+  const handleGooglePay = async () => {
+    const activeUnsettled = expenses.filter((exp) => !exp.settled);
+    const totalAmount = activeUnsettled.reduce((sum, exp) => sum + exp.amount, 0);
+
+    if (totalAmount <= 0) {
+      toast({
+        title: 'Nothing to settle',
+        description: 'All expenses are already settled.',
+      });
+      return;
+    }
+
+    const razorpayLoaded = await loadRazorpayScript();
+    if (!razorpayLoaded) {
+      toast({ title: 'Payment Error', description: 'Failed to load payment gateway.' });
+      return;
+    }
+
+    try {
+      // Create an order on the backend
+      const orderRes = await fetch('http://localhost:4000/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalAmount }),
+      });
+
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok) {
+        throw new Error(orderData.error || 'Unable to create payment order');
+      }
+
+      const options: any = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Split Easy',
+        description: 'Expense Settlement',
+        order_id: orderData.id,
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch('http://localhost:4000/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(response),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (verifyRes.ok && verifyData.success) {
+              toast({ title: 'Payment Successful', description: 'Expenses settled!' });
+
+              // Mark all active expenses as settled
+              setExpenses((prev) => prev.map((e) => ({ ...e, settled: true })));
+
+              setShowSettleUp(false);
+            } else {
+              toast({ title: 'Verification Failed', description: verifyData.error || 'Could not verify payment.' });
+            }
+          } catch (err: any) {
+            console.error(err);
+            toast({ title: 'Payment Error', description: err.message || 'Something went wrong.' });
+          }
+        },
+        prefill: {
+          name: user?.name,
+          email: user?.email,
+        },
+        theme: {
+          color: '#4f46e5',
+        },
+      };
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - Razorpay will be available globally after script loads
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: 'Payment Error', description: error.message || 'Failed to initiate payment.' });
+    }
   };
 
   const handleManualSettlement = (expenseId: string) => {
