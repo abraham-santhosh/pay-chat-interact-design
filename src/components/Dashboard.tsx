@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Receipt, MessageCircle, LogIn, LogOut, User, Users, Calculator, Settings, Edit, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +11,7 @@ import LoadingScreen from './LoadingScreen';
 import Groups from './Groups';
 import Profile from './Profile';
 import AutoCalculate from './AutoCalculate';
+import ExpenseChart from './ExpenseChart';
 import { useToast } from '@/hooks/use-toast';
 
 interface Expense {
@@ -363,59 +363,65 @@ const Dashboard = () => {
                 </Button>
               </div>
 
-              {/* Recent Expenses */}
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold mb-6 text-gray-800">Recent Expenses</h2>
-                  
-                  {expenses.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Receipt className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-600 mb-2">No expenses yet</h3>
-                      <p className="text-gray-500">Add your first expense to get started</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {expenses.slice(-10).reverse().map((expense) => (
-                        <div 
-                          key={expense.id} 
-                          className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
-                            expense.settled ? 'opacity-60' : ''
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
-                              {expense.description}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              Paid by {expense.paidBy} • {expense.date}
-                              {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
-                                ₹{expense.amount.toFixed(2)}
+              {/* Activity Graph and Recent Expenses Grid */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Activity Graph */}
+                <ExpenseChart expenses={expenses} />
+
+                {/* Recent Expenses */}
+                <Card className="shadow-lg">
+                  <CardContent className="p-6">
+                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Recent Expenses</h2>
+                    
+                    {expenses.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Receipt className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No expenses yet</h3>
+                        <p className="text-gray-500">Add your first expense to get started</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {expenses.slice(-10).reverse().map((expense) => (
+                          <div 
+                            key={expense.id} 
+                            className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${
+                              expense.settled ? 'opacity-60' : ''
+                            }`}
+                          >
+                            <div className="flex-1">
+                              <h4 className={`font-semibold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                                {expense.description}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                Paid by {expense.paidBy} • {expense.date}
+                                {expense.settled && <span className="ml-2 text-green-600 font-medium">• Settled</span>}
                               </p>
-                              <p className="text-sm text-gray-600">{expense.participants.length} people</p>
                             </div>
-                            {!expense.settled && (
-                              <Button
-                                onClick={() => handleEditExpense(expense)}
-                                size="sm"
-                                variant="outline"
-                                className="h-8 w-8 p-0"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className={`text-lg font-bold text-gray-800 ${expense.settled ? 'line-through' : ''}`}>
+                                  ₹{expense.amount.toFixed(2)}
+                                </p>
+                                <p className="text-sm text-gray-600">{expense.participants.length} people</p>
+                              </div>
+                              {!expense.settled && (
+                                <Button
+                                  onClick={() => handleEditExpense(expense)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="groups">
