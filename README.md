@@ -59,6 +59,20 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Express.js (Backend API)
+- Nodemailer (Email notifications)
+
+## 📧 Email Notification System
+
+This application includes a comprehensive email notification system that sends alerts for group activities:
+
+- ✅ Group creation notifications
+- ✅ Member addition/removal alerts  
+- ✅ Group deletion confirmations
+- ✅ Beautiful HTML email templates
+- ✅ Test endpoints for email configuration
+
+See [EMAIL_NOTIFICATIONS.md](./EMAIL_NOTIFICATIONS.md) for detailed setup instructions.
 
 ## How can I deploy this project?
 
