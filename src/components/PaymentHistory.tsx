@@ -30,23 +30,52 @@ const PaymentHistory: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Helper function to handle API responses
+  const handleApiResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type');
+    
+    if (!response.ok) {
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      } else {
+        // If it's not JSON, it might be an HTML error page
+        const text = await response.text();
+        if (text.includes('<!DOCTYPE')) {
+          throw new Error('Server returned an HTML page instead of JSON. Please check if the backend server is running on port 4000.');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    }
+
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      throw new Error('Server did not return JSON data');
+    }
+  };
+
   const fetchPayments = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
       const response = await fetch('/api/payments');
-      if (!response.ok) {
-        throw new Error('Failed to fetch payments');
-      }
+      const data = await handleApiResponse(response);
       
-      const data = await response.json();
       setPayments(data.sort((a: Payment, b: Payment) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       ));
     } catch (err) {
       console.error('Error fetching payments:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch payments');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch payments';
+      setError(errorMessage);
+      
+      toast({
+        title: 'Connection Error',
+        description: 'Unable to connect to the payment server. Please make sure the backend is running.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }

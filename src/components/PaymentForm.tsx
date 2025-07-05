@@ -46,6 +46,31 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentSuccess, onPaymentEr
     resolver: zodResolver(paymentSchema),
   });
 
+  // Helper function to handle API responses
+  const handleApiResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type');
+    
+    if (!response.ok) {
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      } else {
+        // If it's not JSON, it might be an HTML error page
+        const text = await response.text();
+        if (text.includes('<!DOCTYPE')) {
+          throw new Error('Server returned an HTML page instead of JSON. Please check if the backend server is running on port 4000.');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    }
+
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      throw new Error('Server did not return JSON data');
+    }
+  };
+
   // Load Razorpay script
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -80,7 +105,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentSuccess, onPaymentEr
 
       // Get Razorpay configuration
       const configResponse = await fetch('/api/payments/config');
-      const config = await configResponse.json();
+      const config = await handleApiResponse(configResponse);
 
       if (!config.configured) {
         throw new Error('Payment service not configured. Please contact support.');
@@ -95,19 +120,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentSuccess, onPaymentEr
         body: JSON.stringify(data),
       });
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.error || 'Failed to create payment order');
-      }
-
-      const order = await orderResponse.json();
+      const order = await handleApiResponse(orderResponse);
 
       // Configure Razorpay options
       const options = {
         key: config.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'Your Company Name',
+        name: 'Split Easy',
         description: order.description,
         order_id: order.id,
         prefill: {
@@ -139,11 +159,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentSuccess, onPaymentEr
               }),
             });
 
-            if (!verifyResponse.ok) {
-              throw new Error('Payment verification failed');
-            }
-
-            const verifiedPayment = await verifyResponse.json();
+            const verifiedPayment = await handleApiResponse(verifyResponse);
             
             toast({
               title: 'Payment Successful!',
@@ -154,12 +170,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentSuccess, onPaymentEr
             onPaymentSuccess?.(verifiedPayment);
           } catch (error) {
             console.error('Payment verification error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Payment verification failed';
+            
             toast({
               title: 'Payment Verification Failed',
               description: 'Please contact support with your payment details.',
               variant: 'destructive',
             });
-            onPaymentError?.(error instanceof Error ? error.message : 'Payment verification failed');
+            onPaymentError?.(errorMessage);
           }
         },
         modal: {
@@ -178,13 +196,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentSuccess, onPaymentEr
       razorpay.open();
     } catch (error) {
       console.error('Payment error:', error);
-      setError(error instanceof Error ? error.message : 'Payment failed');
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
+      setError(errorMessage);
+      
       toast({
         title: 'Payment Failed',
-        description: error instanceof Error ? error.message : 'Payment failed',
+        description: errorMessage,
         variant: 'destructive',
       });
-      onPaymentError?.(error instanceof Error ? error.message : 'Payment failed');
+      onPaymentError?.(errorMessage);
     } finally {
       setIsLoading(false);
     }
