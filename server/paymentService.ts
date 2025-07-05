@@ -41,7 +41,7 @@ export interface PaymentVerification {
 }
 
 class PaymentService {
-  private razorpay: Razorpay;
+  private razorpay: Razorpay | null;
   private keyId: string;
   private keySecret: string;
 
@@ -51,12 +51,13 @@ class PaymentService {
     
     if (!this.keyId || !this.keySecret) {
       console.warn('Razorpay credentials not found. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.');
+      this.razorpay = null;
+    } else {
+      this.razorpay = new Razorpay({
+        key_id: this.keyId,
+        key_secret: this.keySecret,
+      });
     }
-
-    this.razorpay = new Razorpay({
-      key_id: this.keyId,
-      key_secret: this.keySecret,
-    });
 
     // Ensure the payments file exists
     if (!existsSync(PAYMENTS_FILE)) {
@@ -96,7 +97,7 @@ class PaymentService {
   }
 
   async createOrder(paymentRequest: PaymentRequest): Promise<Payment> {
-    if (!this.keyId || !this.keySecret) {
+    if (!this.razorpay) {
       throw new Error('Razorpay credentials not configured');
     }
 
@@ -140,8 +141,8 @@ class PaymentService {
   }
 
   async verifyPayment(verification: PaymentVerification): Promise<Payment> {
-    if (!this.keySecret) {
-      throw new Error('Razorpay key secret not configured');
+    if (!this.razorpay || !this.keySecret) {
+      throw new Error('Razorpay not configured');
     }
 
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = verification;
@@ -201,8 +202,8 @@ class PaymentService {
   }
 
   async handleWebhook(body: any, signature: string): Promise<void> {
-    if (!this.keySecret) {
-      throw new Error('Razorpay webhook secret not configured');
+    if (!this.razorpay || !this.keySecret) {
+      throw new Error('Razorpay webhook not configured');
     }
 
     // Verify webhook signature
@@ -243,7 +244,7 @@ class PaymentService {
 
   // Test method to check if service is properly configured
   isConfigured(): boolean {
-    return !!(this.keyId && this.keySecret);
+    return !!(this.keyId && this.keySecret && this.razorpay);
   }
 
   getPublicKey(): string {
