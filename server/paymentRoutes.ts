@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import type { RazorpayOrderRequest } from 'razorpay';
 
 const router = express.Router();
 
@@ -42,12 +43,12 @@ router.post('/create-order', async (req: Request, res: Response) => {
   }
 
   try {
-    const options = {
-      amount: Math.round(amount * 100), // Convert rupees to paise
+    const options: RazorpayOrderRequest = {
+      amount: Math.round(amount * 100), // paise
       currency,
       receipt: receipt || `rcpt_${Date.now()}`,
       payment_capture: 1,
-    } as Razorpay.OrderCreateRequestBody;
+    };
 
     const order = await razorpay.orders.create(options);
 
