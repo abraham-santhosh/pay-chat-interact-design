@@ -26,7 +26,8 @@
       "@/*": ["./src/*"]
     },
     "typeRoots": ["./node_modules/@types"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "allowJs": true
   },
   "include": ["vite.config.ts", "server/**/*.ts", "src/types/**/*.d.ts"]
 }
