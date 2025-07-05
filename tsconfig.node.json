@@ -2,11 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2023"],
-    "module": "NodeNext",
+    "module": "ES2022",
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
@@ -20,14 +20,13 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
-    "types": ["node"],
+    "types": ["node", "express", "cors"],
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
     },
     "typeRoots": ["./node_modules/@types"],
-    "resolvePackageJsonExports": true,
-    "verbatimModuleSyntax": true
+    "resolveJsonModule": true
   },
   "include": ["vite.config.ts", "server/**/*.ts"]
 }
