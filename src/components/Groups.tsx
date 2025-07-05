@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Users, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,9 +16,12 @@ interface Group {
 }
 
 interface GroupsProps {
-  onGroupSelect: (group: Group) => void;
+  onGroupSelect: (group: Group | null) => void;
   selectedGroup: Group | null;
 }
+
+// Backend API base URL – adjust if your server runs elsewhere
+const API_BASE = 'http://localhost:4000';
 
 const Groups: React.FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -29,74 +31,105 @@ const Groups: React.FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
   const [newMemberName, setNewMemberName] = useState('');
   const { toast } = useToast();
 
-  const createGroup = (e: React.FormEvent) => {
+  // Fetch groups on component mount
+  useEffect(() => {
+    fetch(`${API_BASE}/groups`)
+      .then((res) => res.json())
+      .then(setGroups)
+      .catch(console.error);
+  }, []);
+
+  const createGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!newGroupForm.name.trim()) return;
 
-    const newGroup: Group = {
-      id: Date.now().toString(),
-      name: newGroupForm.name.trim(),
-      description: newGroupForm.description.trim(),
-      members: [],
-      createdAt: new Date().toLocaleDateString(),
-    };
+    try {
+      const res = await fetch(`${API_BASE}/groups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGroupForm.name.trim(),
+          description: newGroupForm.description.trim(),
+        }),
+      });
 
-    setGroups([...groups, newGroup]);
-    setNewGroupForm({ name: '', description: '' });
-    setShowCreateForm(false);
-    
-    toast({
-      title: "Group Created!",
-      description: `Created group "${newGroup.name}"`,
-    });
+      const newGroup: Group = await res.json();
+
+      setGroups([...groups, newGroup]);
+      setNewGroupForm({ name: '', description: '' });
+      setShowCreateForm(false);
+
+      toast({
+        title: 'Group Created!',
+        description: `Created group "${newGroup.name}"`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const addMember = (groupId: string) => {
+  const addMember = async (groupId: string) => {
     if (!newMemberName.trim()) return;
 
     const memberUsername = newMemberName.trim();
-    
-    setGroups(groups.map(group => 
-      group.id === groupId 
-        ? { ...group, members: [...group.members, memberUsername] }
-        : group
-    ));
 
-    setNewMemberName('');
-    setShowAddMember(null);
-    
-    toast({
-      title: "Member Added!",
-      description: `Added ${memberUsername} to the group`,
-    });
-  };
+    try {
+      const res = await fetch(`${API_BASE}/groups/${groupId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: memberUsername }),
+      });
 
-  const removeMember = (groupId: string, memberUsername: string) => {
-    setGroups(groups.map(group => 
-      group.id === groupId 
-        ? { ...group, members: group.members.filter(m => m !== memberUsername) }
-        : group
-    ));
-    
-    toast({
-      title: "Member Removed",
-      description: `Removed ${memberUsername} from the group`,
-    });
-  };
+      const updatedGroup: Group = await res.json();
+      setGroups(groups.map((g) => (g.id === groupId ? updatedGroup : g)));
 
-  const deleteGroup = (groupId: string) => {
-    const groupToDelete = groups.find(g => g.id === groupId);
-    setGroups(groups.filter(group => group.id !== groupId));
-    
-    if (selectedGroup?.id === groupId) {
-      onGroupSelect(null as any);
+      setNewMemberName('');
+      setShowAddMember(null);
+
+      toast({
+        title: 'Member Added!',
+        description: `Added ${memberUsername} to the group`,
+      });
+    } catch (error) {
+      console.error(error);
     }
-    
-    toast({
-      title: "Group Deleted",
-      description: `Deleted group "${groupToDelete?.name}"`,
-    });
+  };
+
+  const removeMember = async (groupId: string, memberUsername: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/groups/${groupId}/members/${memberUsername}`, {
+        method: 'DELETE',
+      });
+      const updatedGroup: Group = await res.json();
+      setGroups(groups.map((g) => (g.id === groupId ? updatedGroup : g)));
+
+      toast({
+        title: 'Member Removed',
+        description: `Removed ${memberUsername} from the group`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const deleteGroup = async (groupId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/groups/${groupId}`, { method: 'DELETE' });
+      const deletedGroup: Group = await res.json();
+
+      setGroups(groups.filter((group) => group.id !== groupId));
+
+      if (selectedGroup?.id === groupId) {
+        onGroupSelect(null);
+      }
+
+      toast({
+        title: 'Group Deleted',
+        description: `Deleted group "${deletedGroup?.name}"`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -203,7 +236,7 @@ const Groups: React.FC<GroupsProps> = ({ onGroupSelect, selectedGroup }) => {
                   </div>
                   
                   <div className="pt-2 border-t">
-                    <p className="text-xs text-gray-500">Created: {group.createdAt}</p>
+                    <p className="text-xs text-gray-500">Created: {new Date(group.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               </CardContent>
