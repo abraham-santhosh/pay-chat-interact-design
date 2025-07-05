@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { emailService, NotificationData } from './emailService.js';
+import { paymentService, Payment, PaymentRequest, PaymentVerification } from './paymentService.js';
 
 interface Group {
   id: string;
@@ -262,6 +263,103 @@ app.post('/notifications/test', async (req: Request, res: Response<{ success: bo
     console.error('Test notification error:', error);
     return res.status(500).json({ success: false, message: 'Error sending test notification' });
   }
+});
+
+/* Payment Routes */
+
+// Create a new payment order
+app.post('/api/payments/create', async (req: Request, res: Response<Payment | { error: string }>) => {
+  try {
+    const paymentRequest: PaymentRequest = req.body;
+    
+    if (!paymentRequest.amount || !paymentRequest.description) {
+      return res.status(400).json({ error: 'Amount and description are required' });
+    }
+
+    if (paymentRequest.amount <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    }
+
+    if (!paymentService.isConfigured()) {
+      return res.status(500).json({ error: 'Payment service not configured. Please set Razorpay credentials.' });
+    }
+
+    const payment = await paymentService.createOrder(paymentRequest);
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error('Error creating payment:', error);
+    res.status(500).json({ error: 'Failed to create payment order' });
+  }
+});
+
+// Verify payment after successful completion
+app.post('/api/payments/verify', async (req: Request, res: Response<Payment | { error: string }>) => {
+  try {
+    const verification: PaymentVerification = req.body;
+    
+    if (!verification.razorpay_order_id || !verification.razorpay_payment_id || !verification.razorpay_signature) {
+      return res.status(400).json({ error: 'Missing required verification parameters' });
+    }
+
+    const payment = await paymentService.verifyPayment(verification);
+    res.json(payment);
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    res.status(400).json({ error: 'Payment verification failed' });
+  }
+});
+
+// Get payment status
+app.get('/api/payments/:paymentId', async (req: Request, res: Response<Payment | { error: string }>) => {
+  try {
+    const { paymentId } = req.params;
+    const payment = await paymentService.getPayment(paymentId);
+    
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    res.json(payment);
+  } catch (error) {
+    console.error('Error fetching payment:', error);
+    res.status(500).json({ error: 'Failed to fetch payment' });
+  }
+});
+
+// Get all payments (for admin/dashboard)
+app.get('/api/payments', async (req: Request, res: Response<Payment[] | { error: string }>) => {
+  try {
+    const payments = await paymentService.getAllPayments();
+    res.json(payments);
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    res.status(500).json({ error: 'Failed to fetch payments' });
+  }
+});
+
+// Webhook endpoint for payment status updates
+app.post('/api/payments/webhook', async (req: Request, res: Response) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'] as string;
+    
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing webhook signature' });
+    }
+
+    await paymentService.handleWebhook(req.body, signature);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(400).json({ error: 'Webhook processing failed' });
+  }
+});
+
+// Get Razorpay public key for frontend
+app.get('/api/payments/config', (req: Request, res: Response<{ keyId: string; configured: boolean }>) => {
+  res.json({
+    keyId: paymentService.getPublicKey(),
+    configured: paymentService.isConfigured()
+  });
 });
 
 /* Start server */
