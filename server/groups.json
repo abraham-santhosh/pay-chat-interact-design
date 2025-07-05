@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "1751705488734",
+    "name": "Development Team",
+    "description": "Our awesome dev team",
+    "members": [
+      "john.doe"
+    ],
+    "createdAt": "2025-07-05T08:51:28.734Z",
+    "notificationEmails": [
+      "hr@example.com",
+      "team-lead@example.com",
+      "ceo@example.com"
+    ]
+  }
+]
