@@ -70,6 +70,7 @@ This project is built with:
 - Tailwind CSS
 - Express.js (Backend API)
 - Nodemailer (Email notifications)
+- MongoDB (Backend)
 
 ## 📧 Email Notification System
 
